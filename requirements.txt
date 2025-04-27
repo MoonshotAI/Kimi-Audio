@@ -38,3 +38,6 @@ timm
 sacrebleu==1.5.1
 soundfile
 tqdm
+ninja
+flash_attn
+
