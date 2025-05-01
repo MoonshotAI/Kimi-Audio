@@ -46,8 +46,13 @@ Kimi-Audio is designed as a universal audio foundation model capable of handling
 ## Architecture Overview
 
 <p align="center">
-    <img src="assets/kimia_framework.png" width="70%"/>
-<p>
+  <picture>
+    <source srcset="assets/kimia_framework_dark.png" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/kimia_framework.png" media="(prefers-color-scheme: light)">
+    <img src="assets/kimia_framework.png" width="70%">
+  </picture>
+</p>
+
 
 Kimi-Audio consists of three main components:
 
@@ -129,8 +134,13 @@ Kimi-Audio achieves state-of-the-art (SOTA) performance across a wide range of a
 
 The below is the overall performance:
 <p align="center">
-    <img src="assets/kimia_radar_chart.png" width="70%"/>
-<p>
+  <picture>
+    <source srcset="assets/kimia_radar_chart_dark.png" media="(prefers-color-scheme: dark)">
+    <source srcset="assets/kimia_radar_chart.png" media="(prefers-color-scheme: light)">
+    <img src="assets/kimia_radar_chart.png" width="70%">
+  </picture>
+</p>
+
 
 
 
