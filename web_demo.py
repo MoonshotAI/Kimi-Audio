@@ -69,7 +69,7 @@ class KimiAudioChat:
     }
     
     # 音频采样率
-    AUDIO_SAMPLE_RATE = 22050
+    AUDIO_SAMPLE_RATE = 24000
     
     def __init__(self, model, output_dir, logger, use_stream=False, first_chunk_size=30, stream_chunk_size=20):
         """初始化聊天会话处理器
