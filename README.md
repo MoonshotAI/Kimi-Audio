@@ -17,11 +17,20 @@ We present Kimi-Audio, an open-source audio foundation model excelling in **audi
 
 ## Table of Contents
 
+- [🔥🔥🔥 News!!](#-news)
+- [Table of Contents](#table-of-contents)
 - [Introduction](#introduction)
 - [Architecture Overview](#architecture-overview)
+- [Getting Started](#getting-started)
+  - [Step1: Get the Code](#step1-get-the-code)
 - [Quick Start](#quick-start)
+- [Web Demo](#web-demo)
+  - [Running the Web Demo](#running-the-web-demo)
+  - [Command Line Arguments](#command-line-arguments)
+  - [Interface Features](#interface-features)
+  - [Usage Example](#usage-example)
 - [Evaluation](#evaluation)
-  - [Speech Recognition](#automatic-speech-recognition-asr)
+  - [Automatic Speech Recognition (ASR)](#automatic-speech-recognition-asr)
   - [Audio Understanding](#audio-understanding)
   - [Audio-to-Text Chat](#audio-to-text-chat)
   - [Speech Conversation](#speech-conversation)
@@ -122,6 +131,65 @@ print(">>> Conversational Output Text: ", text_output) # Expected output: "A."
 
 print("Kimi-Audio inference examples complete.")
 ```
+
+## Web Demo
+
+Kimi-Audio includes an interactive web interface that allows you to experiment with the model through a user-friendly chat interface.
+
+### Running the Web Demo
+
+The web demo supports both standard generation mode and streaming mode. In streaming mode, audio is generated progressively in small chunks, providing a more responsive experience.
+
+```bash
+# Run in standard mode
+python web_demo.py --model_path "moonshotai/Kimi-Audio-7B-Instruct" --output_dir "test_audios/output"
+
+# Run in streaming mode (faster response)
+python web_demo.py --model_path "moonshotai/Kimi-Audio-7B-Instruct" --output_dir "test_audios/output" --stream
+```
+
+### Command Line Arguments
+
+- `--model_path`: Path to the Kimi-Audio model (default: "moonshotai/Kimi-Audio-7B-Instruct")
+- `--output_dir`: Directory to save output audio files (default: "test_audios/output")
+- `--port`: Port number for the Gradio web server (default: 7860)
+- `--share`: Share the Gradio interface publicly (creates a public URL)
+- `--stream`: Enable streaming generation mode (recommended for faster interaction)
+- `--first_chunk_size`: Number of tokens in the first audio chunk for streaming mode (default: 30)
+- `--stream_chunk_size`: Number of tokens in subsequent audio chunks for streaming mode (default: 20)
+- `--log_level`: Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `--log_file`: Path to save log file (default: auto-generated based on date/time)
+
+### Interface Features
+
+The web interface includes:
+
+1. **Chat Tab**: 
+   - Text input for typing messages
+   - Audio input via microphone or file upload
+   - Audio playback for model responses
+
+2. **Settings Tab**:
+   - Audio generation parameters (temperature, top-k, repetition penalty)
+   - Text generation parameters
+   - Output type selection (text-only or text+audio)
+   - Streaming mode parameters (when running in streaming mode)
+
+3. **About Tab**: Information about the model and usage instructions
+
+### Usage Example
+
+1. Start the web demo with streaming mode for more responsive interaction:
+   ```bash
+   python web_demo.py --model_path "moonshotai/Kimi-Audio-7B-Instruct" --stream
+   ```
+
+2. Access the interface at http://localhost:7860 in your web browser.
+
+3. In the chat interface:
+   - Type a text message or upload/record an audio message
+   - Receive both text and audio responses from the model
+   - Adjust parameters in the Settings tab to customize generation behavior
 
 ## Evaluation
 
