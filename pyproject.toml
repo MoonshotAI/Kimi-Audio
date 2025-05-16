@@ -1,0 +1,43 @@
+# ---------- pyproject.toml ----------
+[build-system]
+requires = ["setuptools", "wheel", "torch"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name        = "kimi-audio"
+version     = "0.1.0"
+description = "Inference library for the Kimi‑Audio foundation model"
+readme      = "README.md"
+license     = {text = "MIT"}
+authors     = [{name = "MoonshotAI", email = "contact@moonshot.ai"}]
+
+dependencies = [
+  "torch",
+  "torchaudio",
+  "flash-attn",
+  "soundfile",
+  "librosa",
+  "tqdm",
+  "loguru",
+  "huggingface_hub",
+  "transformers",
+  "conformer",
+  "diffusers",
+  "tiktoken",
+  "ninja",
+  "timm",
+  "torchdyn"
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kimia_infer*"]
+
+[tool.setuptools.package-data]
+"kimia_infer" = ["**/*"]
+
+[project.urls]
+Repository = "https://github.com/MoonshotAI/Kimi-Audio"
