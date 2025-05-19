@@ -68,6 +68,12 @@ git submodule update --init --recursive
 pip install -r requirements.txt
 ```
 
+Kimi‑Audio can now be installed directly via **pip**.
+```bash
+pip install torch
+pip install git+https://github.com/MoonshotAI/Kimi-Audio.git
+```
+
 ## Quick Start
 
 This example demonstrates basic usage for generating text from audio (ASR) and generating both text and speech in a conversational turn.
