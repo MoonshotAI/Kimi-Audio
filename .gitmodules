@@ -1,3 +1,4 @@
 [submodule "kimia_infer/models/tokenizer/glm4"]
 	path = kimia_infer/models/tokenizer/glm4
-	url = https://github.com/THUDM/GLM-4-Voice.git
+	url = https://github.com/rsxdalv/GLM-4-Voice.git
+	branch = speech_tokenizer
