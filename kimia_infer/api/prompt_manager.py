@@ -50,8 +50,11 @@ class KimiAPromptManager:
         token_ids = self.text_tokenizer.encode(text, bos=False, eos=False)
         return token_ids
 
-    def _tokenize_audio(self, wav_path):
-        wav_tokens = self.audio_tokenizer.tokenize(audio_path=wav_path)
+    def _tokenize_audio(self, wav_path_or_waveform):
+        if isinstance(wav_path_or_waveform, str):
+            wav_tokens = self.audio_tokenizer.tokenize(audio_path=wav_path_or_waveform)
+        else:
+            wav_tokens = self.audio_tokenizer.tokenize(speech=wav_path_or_waveform)
         wav_tokens = wav_tokens + self.kimia_token_offset
         wav_tokens_list = wav_tokens.squeeze(0).cpu().numpy().tolist()
         return wav_tokens_list
@@ -63,8 +66,9 @@ class KimiAPromptManager:
             wav_tensor = torch.tensor(wav).unsqueeze(0)[:, :]
         elif isinstance(wav, torch.Tensor):
             wav_tensor = wav
+            assert len(wav_tensor.shape) == 2, "The wav tensor must be a 2D tensor"
         else:
-            raise ValueError(f"Invalid wav type: {type(wav)}")
+            raise ValueError(f"Invalid wav type: {type(wav)}, wav must be a string or a 2-D torch.Tensor")
         assert self.whisper_model is not None
         wav_tensor = wav_tensor.to(torch.cuda.current_device())
         continous_feature = self.whisper_model.tokenize_waveform(wav_tensor)
@@ -116,11 +120,11 @@ class KimiAPromptManager:
                 kimia_content_msg.audio_append(self.extra_tokens.kimia_text_blank, audio_token_loss_mask=False)
 
         elif message["message_type"] == "audio":
+            audio_path_or_waveform = message["content"]
             if "audio_tokens" in message:
                 speech_tokens = message["audio_tokens"]
             else:
-                audio_path = message["content"]
-                speech_tokens = self._tokenize_audio(audio_path)
+                speech_tokens = self._tokenize_audio(audio_path_or_waveform)
 
             kimia_content_msg.audio_append(self.extra_tokens.media_begin)
             kimia_content_msg.audio_extend(speech_tokens, is_continuous=True, audio_token_loss_mask=has_loss)
@@ -139,11 +143,11 @@ class KimiAPromptManager:
                 kimia_content_msg.text_append(self.extra_tokens.kimia_text_blank)
 
             if extract_whisper_feature:
-                whisper_feature = self.extract_whisper_feat(audio_path)
+                whisper_feature = self.extract_whisper_feat(audio_path_or_waveform)
                 kimia_content_msg.continuous_feature.append(whisper_feature)
         elif message["message_type"] == "audio-text":
-            audio_path, text = message["content"]
-            speech_tokens = self._tokenize_audio(audio_path)
+            audio_path_or_waveform, text = message["content"]
+            speech_tokens = self._tokenize_audio(audio_path_or_waveform)
             text_tokens = self._tokenize_text(text)
 
             kimia_content_msg.audio_extend([self.extra_tokens.kimia_text_blank] * self.kimia_text_audiodelaytokens)

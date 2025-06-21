@@ -105,6 +105,7 @@ messages_asr = [
     # You can provide context or instructions as text
     {"role": "user", "message_type": "text", "content": "Please transcribe the following audio:"},
     # Provide the audio file path
+    # Note that the content can also be waveform in 2D torch.Tensor format with sr=16000 (the first dim size is 1, i.e., shape = [1, sample_length])
     {"role": "user", "message_type": "audio", "content": "test_audios/asr_example.wav"}
 ]
 
