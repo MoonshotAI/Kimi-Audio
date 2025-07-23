@@ -672,7 +672,6 @@ class MoonshotKimiaModel(Qwen2PreTrainedModel):
             audio_emb = self.embed_tokens(input_ids)
             if self.use_whisper_feature and whisper_input_feature is not None:
                 if not isinstance(whisper_input_feature, list):
-                    whisper_input_feature = whisper_input_feature.squeeze(0)
                     whisper_input_feature = [whisper_input_feature]
 
                 media_start_idx = (input_ids == self.kimia_media_begin).nonzero()
