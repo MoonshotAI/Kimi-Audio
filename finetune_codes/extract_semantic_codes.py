@@ -27,7 +27,7 @@ if __name__ == "__main__":
     model_config = AutoConfig.from_pretrained(cache_path, trust_remote_code=True)
 
     prompt_manager = KimiAPromptManager(
-            model_path=cache_path, kimia_token_offset=model_config.kimia_token_offset
+            model_path=cache_path, kimia_token_offset=model_config.kimia_token_offset, kimia_text_audiodelaytokens=model_config.kimia_mimo_audiodelaytokens
         )
     
     with open(args.input_file, "r") as f, open(args.output_file, "w") as f_out:

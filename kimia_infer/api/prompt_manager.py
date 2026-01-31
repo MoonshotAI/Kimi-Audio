@@ -28,7 +28,7 @@ class KimiAPromptManager:
         self.whisper_model.eval()
 
         logger.info(f"Loading text tokenizer")
-        if os.path.exists(model_path) and os.path.exists(os.path.join(model_path, "tokenizer.json")):
+        if os.path.exists(model_path) and os.path.exists(os.path.join(model_path, "tokenizer_config.json")):
             self.text_tokenizer = AutoTokenizer.from_pretrained(
                 model_path, trust_remote_code=True
             )
