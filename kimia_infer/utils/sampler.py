@@ -1,6 +1,36 @@
 import torch
 
 
+def _apply_repetition_penalty(logits, recent_tokens, penalty, window_size):
+    """Penalize each recent token once, independently for each batch row.
+
+    A history of shape [history_len] or [1, history_len] is shared by all
+    rows; [batch_size, history_len] supplies a separate history per row.
+    A non-positive window disables the penalty. The input logits are not
+    modified, including when they are a view of a sequence's last step.
+    """
+    if penalty <= 1.0 or recent_tokens is None or window_size <= 0:
+        return logits
+    if recent_tokens.ndim == 1:
+        recent_tokens = recent_tokens.unsqueeze(0)
+    if recent_tokens.ndim != 2 or recent_tokens.size(0) not in (1, logits.size(0)):
+        raise ValueError(
+            "recent_tokens must have shape [history_len], [1, history_len], "
+            "or [batch_size, history_len]"
+        )
+    if recent_tokens.size(1) == 0:
+        return logits
+
+    recent_window = recent_tokens[:, -window_size:].to(
+        device=logits.device, dtype=torch.long
+    ).expand(logits.size(0), -1)
+    scores = logits.gather(1, recent_window)
+    scores = torch.where(scores < 0, scores * penalty, scores / penalty)
+    # Duplicate token IDs gather the same original score, so their penalty
+    # does not compound. Out-of-place scatter also preserves caller logits.
+    return logits.scatter(1, recent_window, scores)
+
+
 class KimiASampler:
     def __init__(
         self,
@@ -30,7 +60,9 @@ class KimiASampler:
 
         Args:
             logits: Logits tensor of shape [batch_size, seq_len, vocab_size] or [batch_size, vocab_size]
-            recent_tokens: Optional tensor of recent tokens for repetition penalty
+            recent_tokens: Optional shared history [history_len] or [1, history_len],
+                or a per-row history [batch_size, history_len]. The last window_size
+                tokens are penalized; shorter histories are used in full.
 
         Returns:
             Sampled token ids
@@ -39,28 +71,12 @@ class KimiASampler:
         if len(logits.shape) == 3:
             logits = logits[:, -1]
 
-        # Apply repetition penalty if needed
-        if (
-            self.audio_repetition_penalty > 1.0
-            and recent_tokens is not None
-            and len(recent_tokens) > self.audio_repetition_window_size
-        ):
-            logits = logits[0]  # Assumes batch size of 1 for repetition penalty
-            recent_window = recent_tokens[-self.audio_repetition_window_size :].long()
-
-            # Gather scores of recent tokens
-            scores = torch.gather(logits, dim=0, index=recent_window)
-
-            # Apply penalty: if score < 0 multiply by penalty, otherwise divide by penalty
-            scores = torch.where(
-                scores < 0,
-                scores * self.audio_repetition_penalty,
-                scores / self.audio_repetition_penalty,
-            )
-
-            # Put the penalized scores back
-            logits.scatter_(dim=0, index=recent_window, src=scores)
-            logits = logits.unsqueeze(0)  # Add batch dimension back
+        logits = _apply_repetition_penalty(
+            logits,
+            recent_tokens,
+            self.audio_repetition_penalty,
+            self.audio_repetition_window_size,
+        )
 
         # Convert to probabilities with softmax
         logprobs = torch.log_softmax(logits, dim=-1, dtype=torch.float)
@@ -102,7 +118,9 @@ class KimiASampler:
 
         Args:
             logits: Logits tensor of shape [batch_size, seq_len, vocab_size] or [batch_size, vocab_size]
-            recent_tokens: Optional tensor of recent tokens for repetition penalty
+            recent_tokens: Optional shared history [history_len] or [1, history_len],
+                or a per-row history [batch_size, history_len]. The last window_size
+                tokens are penalized; shorter histories are used in full.
 
         Returns:
             Sampled token ids
@@ -111,28 +129,12 @@ class KimiASampler:
         if len(logits.shape) == 3:
             logits = logits[:, -1]
 
-        # Apply repetition penalty if needed
-        if (
-            self.text_repetition_penalty > 1.0
-            and recent_tokens is not None
-            and len(recent_tokens) > self.text_repetition_window_size
-        ):
-            logits = logits[0]  # Assumes batch size of 1 for repetition penalty
-            recent_window = recent_tokens[-self.text_repetition_window_size :].long()
-
-            # Gather scores of recent tokens
-            scores = torch.gather(logits, dim=0, index=recent_window)
-
-            # Apply penalty: if score < 0 multiply by penalty, otherwise divide by penalty
-            scores = torch.where(
-                scores < 0,
-                scores * self.text_repetition_penalty,
-                scores / self.text_repetition_penalty,
-            )
-
-            # Put the penalized scores back
-            logits.scatter_(dim=0, index=recent_window, src=scores)
-            logits = logits.unsqueeze(0)  # Add batch dimension back
+        logits = _apply_repetition_penalty(
+            logits,
+            recent_tokens,
+            self.text_repetition_penalty,
+            self.text_repetition_window_size,
+        )
 
         # Convert to probabilities with softmax
         logprobs = torch.log_softmax(logits, dim=-1, dtype=torch.float)
