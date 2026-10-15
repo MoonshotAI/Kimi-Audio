@@ -6,7 +6,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from flash_attn import flash_attn_varlen_func, flash_attn_varlen_qkvpacked_func
+try:
+    from flash_attn import flash_attn_varlen_func, flash_attn_varlen_qkvpacked_func
+except ImportError:
+    flash_attn_varlen_func = flash_attn_varlen_qkvpacked_func = None
 
 
 def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor):
@@ -58,6 +61,8 @@ class Attention(nn.Module):
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
         self.fused_attn = flash_attention
+        if flash_attention and flash_attn_varlen_func is None:
+            raise ImportError("flash_attn is required when flash_attention=True")
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.qk_norm = qk_norm
@@ -163,12 +168,38 @@ class Attention(nn.Module):
                 )
 
         else:
-            q = q * self.scale
-            attn = q @ k.transpose(-2, -1)
-            attn = attn.softmax(dim=-1)
-            attn = self.attn_drop(attn)
-            x = attn @ v
-            x = x.transpose(1, 2)
+            if not nopadding and incremental_state is not None:
+                raise NotImplementedError(
+                    "It is designed for batching inference. AR-chunk is not supported currently."
+                )
+            qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim)
+            q, k, v = qkv.unbind(2)
+            q, k = self.q_norm(q), self.k_norm(k)
+            if rotary_pos_emb is not None:
+                q, k = apply_rotary_emb(q, k, rotary_pos_emb)
+            if incremental_state is not None:
+                if "prev_k" in incremental_state:
+                    k = torch.cat([incremental_state["prev_k"], k], dim=1)
+                if "prev_v" in incremental_state:
+                    v = torch.cat([incremental_state["prev_v"], v], dim=1)
+                incremental_state["cur_k"] = k
+                incremental_state["cur_v"] = v
+
+            # SDPA expects [batch, heads, sequence, head_dim]. A boolean
+            # mask excludes padding keys and handles fully masked rows safely.
+            q, k, v = (tensor.transpose(1, 2) for tensor in (q, k, v))
+            attention_mask = None
+            if not nopadding:
+                lengths = torch.as_tensor(seq_len, device=x.device)
+                valid_tokens = torch.arange(N, device=x.device)[None, :] < lengths[:, None]
+                attention_mask = valid_tokens[:, None, None, :]
+            x = F.scaled_dot_product_attention(
+                q, k, v,
+                attn_mask=attention_mask,
+                dropout_p=self.attn_drop.p if self.training else 0.0,
+            ).transpose(1, 2)
+            if not nopadding:
+                x = x.masked_fill(~valid_tokens[:, :, None, None], 0)
 
         x = x.reshape(B, N, C)
         x = self.proj(x)
