@@ -47,19 +47,19 @@ class StreamingFlowMatchingScheduler(SchedulerBase):
     def step(self, xt, predicted_v):
 
         h = (self.t_max - self.t_min) / self.timesteps
-        h = h * torch.ones(xt.shape[0], dtype=xt.dtype, device=xt.device)
 
         xt = xt + h * predicted_v
         return xt
 
     def sample(self, ode_wrapper, time_steps, xt, verbose=False, x0=None):
-        h = (self.t_max - self.t_min) / self.timesteps
-        h = h * torch.ones(xt.shape[0], dtype=xt.dtype, device=xt.device)
-
         if verbose:
             gt_v = x0 - xt
 
-        for t in time_steps:
+        # time_steps contains integration endpoints, as in NeuralODE. Evaluate
+        # the velocity at the left endpoint of each interval, never after the
+        # final endpoint, and retain non-uniform (or descending) grid spacing.
+        for t, t_next in zip(time_steps[:-1], time_steps[1:]):
+            h = (t_next - t).to(device=xt.device, dtype=xt.dtype)
             predicted_v = ode_wrapper(t, xt)
             if verbose:
                 dist = torch.mean(torch.nn.functional.l1_loss(gt_v, predicted_v))
